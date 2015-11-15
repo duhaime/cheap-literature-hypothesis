@@ -29,7 +29,7 @@ def cluster_title_rows():
 			titles.append( sr[13] )
 
 		# For each title, if it's similar to the following title, add them both to the current cluster
-		for i, r in enumerate(f[:-1]): #i in xrange(len(titles)):
+		for i, r in enumerate(f[:-1]):
 			if i < len(titles) -1:
 				if string_similarity( titles[i], titles[i+1] ) > .95:
 					title_clusters[i] = cluster_id
@@ -60,7 +60,6 @@ def write_clustered_titles():
 					cluster_id = title_clusters[c]
 					unique_years_in_cluster = len(list(set(cluster_years[cluster_id])))
 					
-
 					print unique_years_in_cluster, cluster_years[cluster_id], title_clusters[c]
 					
 					out.write( r + "\t" + str(title_clusters[c]) + "\t" + str(unique_years_in_cluster) + "\t" + canonical_title[cluster_id] + "\n" )
@@ -68,5 +67,4 @@ def write_clustered_titles():
 					out.write( r + "\t" + "NA" + "\t" + "NA" + "\t" + "NA" + "\n" )		 
 				
 if __name__ == "__main__":
-	write_clustered_titles()
-			
+	write_clustered_titles()	
