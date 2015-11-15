@@ -41,7 +41,7 @@ ggplot(sample_prices, aes(x=as.numeric(as.character(year)),y=as.numeric(as.chara
   geom_smooth(method="lm") +
   xlab("Year") +
   ylab("Farthings per Page") +
-  ggtitle("The Changing Price of Eighteenth-Century Texts") +
+  ggtitle("Price Slopes for Selected Eighteenth-Century Texts") +
   scale_colour_discrete(name="Book Size")
 
 ####################
