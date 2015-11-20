@@ -35,7 +35,7 @@ sample_prices$clean_size[sample_prices$clean_size == 4] <- "quarto"
 sample_prices$clean_size[sample_prices$clean_size == 8] <- "octavo"
 sample_prices$clean_size[sample_prices$clean_size == 12] <- "duodecimo"
 
-ggplot(sample_prices, aes(x=as.numeric(as.character(year)),y=as.numeric(as.character(farthings_per_page)),colour=as.factor(clean_size))) +
+p<- ggplot(sample_prices, aes(x=as.numeric(as.character(year)),y=as.numeric(as.character(farthings_per_page)),colour=as.factor(clean_size))) +
   geom_jitter() +
   facet_wrap(~facet_order, ncol=3, scales="free_y") +
   geom_smooth(method="lm") +
@@ -43,6 +43,8 @@ ggplot(sample_prices, aes(x=as.numeric(as.character(year)),y=as.numeric(as.chara
   ylab("Farthings per Page") +
   ggtitle("Price Slopes for Selected Eighteenth-Century Texts") +
   scale_colour_discrete(name="Book Size")
+
+ggsave(p, file="sample_prices.png")
 
 ####################
 # Plot Book Facets #
@@ -52,13 +54,15 @@ ggplot(sample_prices, aes(x=as.numeric(as.character(year)),y=as.numeric(as.chara
 df$title_to_plot <- paste( substr(df$canonical_title,0,15), "..." ) 
 
 # Plot all instances of each book as a unique facet 
-ggplot(subset(df, unique_years_in_cluster > 2), aes(x=year,y=farthings_per_page, colour=as.factor(cluster))) +
+p <- ggplot(subset(df, unique_years_in_cluster > 2), aes(x=year,y=farthings_per_page, colour=as.factor(cluster))) +
   geom_point() +
   stat_smooth(method="lm") +
   facet_wrap(~title_to_plot, ncol=10) +
   scale_x_continuous() +
   scale_y_continuous(limits=c(0,3)) +
   scale_colour_discrete(guide=FALSE)
+
+ggsave(p, file="book_facets.png", scale=3)
 
 ########################################
 # Plot farthings per page by book size #
@@ -111,7 +115,7 @@ n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 12 ] <- 'duodecimo'
 n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 'labour' ] <- 'wrigley labour estimate'
 
 # Plot the aggregated df
-ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=size) ) +
+p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=size) ) +
   geom_point() +
   geom_smooth() +
   #geom_errorbar( aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
@@ -122,4 +126,87 @@ ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=size)
   ggtitle("Mean Price Per Page of English Volumes Within the ESTC") +
   guides(color=FALSE)   # this masks the whole key
 
-# If we take the mean of all slopes for each position along the x axis, we can measure aggregate trajectories
+# Save the plot
+ggsave(p, file="farthings_per_page_by_size.png", scale=1.2)
+
+####################
+# Page Count Stats #
+####################
+
+# Plot number of observations at each page length
+p <- ggplot(df, aes(x=clean_pages)) +
+  geom_histogram(binwidth=10) +
+  scale_x_continuous(limits=c(0,200), 
+                     breaks=round(seq(0, 200, by = 10),1) ) +
+  xlab("Number of Pages") +
+  ylab("Number of Observations") +
+  ggtitle("Distribution of Page Counts in the ESTC Price Corpus")
+
+# Save page lengths plot
+ggsave(p, file="page_distributions.png")
+
+##############
+# Year Stats #
+##############
+
+# Plot distribution over years
+p <- ggplot(df, aes(x=year)) +
+  geom_histogram(binwidth=1) +
+  scale_x_continuous() +
+  xlab("Year") +
+  ylab("Number of Observations") +
+  ggtitle("Distribution of Publication Dates in the ESTC Price Corpus")
+
+# Save the publication date plot
+ggsave(p, file="publication_dates.png")
+
+###################
+# Book Size Stats #
+###################
+
+# Create clean representation of book size
+df$size[ df$clean_size == 2 ] <- 'folio'
+df$size[ df$clean_size == 4 ] <- 'quarto'
+df$size[ df$clean_size == 8 ] <- 'octavo'
+df$size[ df$clean_size == 12 ] <- 'duodecimo'
+df$size[ df$clean_size == 16 ] <- 'sixteenmo'
+
+# Plot the distribution over the book sizes
+p <- ggplot(df, aes(x=size)) +
+  geom_bar(stat="bin") +
+  xlab("Book Size") +
+  ylab("Number of Observations") +
+  ggtitle("Distribution of Book Sizes in the ESTC Price Corpus") +
+  scale_x_discrete(limits=c("octavo","duodecimo","quarto","folio","sixteenmo"))
+
+# Save the book size plot
+ggsave(p, file="book_sizes.png")
+
+######################
+# Farthings Per Page #
+######################
+
+long_and_clean <- subset(df, farthings_per_page < 2 &clean_pages > 30)
+p <- ggplot(long_and_clean, aes(x=farthings_per_page)) +
+  geom_histogram(binwidth=.07) +
+  xlab("Farthings per Page") +
+  ylab("Number of Observations") +
+  ggtitle("Distribution of Book Prices in the ESTC Price Corpus") +
+  scale_x_continuous(breaks=round(seq(0,2, by = .1),1) )
+
+ggsave(p, file="price_distribution.png")
+
+
+############
+# Go Crazy #
+############
+
+library(ggplot2)
+
+ggplot(subset(df, clean_pages > 30),aes(x=farthings,y=clean_pages))+
+  stat_density2d(aes(fill=..level..), geom="polygon") +
+  scale_fill_gradient(low="blue", high="red")
+
+ggplot(subset(df, farthings < 200 & clean_pages < 500), aes(x=farthings,y=clean_pages, colour=factor(illustrations))) +
+  geom_jitter(position = position_jitter(width = 15)) +
+  geom_smooth()
