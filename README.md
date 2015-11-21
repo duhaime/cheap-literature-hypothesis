@@ -1,5 +1,5 @@
-# cheap-literature-hypothesis
-Data and utilities for statistical analysis of book prices
+# Mixed Model Book Prices
+Data and utilities for mixed model analysis of early English book prices
 
 ###Data
 `data` contains price data extracted from the English Short Title Catalogue, an authoritative bibliography of texts published in English speaking countries 1473-1800. 
