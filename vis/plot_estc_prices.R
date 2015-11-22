@@ -121,9 +121,9 @@ p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=
   #geom_errorbar( aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
   scale_x_continuous(limits=c(1700, 1800)) +
   facet_wrap(~size, scales="free_y", ncol=1) +
-  ylab("Mean Price Per Page") +
+  ylab("Mean Farthings Per Page") +
   xlab("Year") +
-  ggtitle("Mean Price Per Page of English Volumes Within the ESTC") +
+  ggtitle("Mean Farthings Per Page of English Volumes Within the ESTC") +
   guides(color=FALSE)   # this masks the whole key
 
 # Save the plot
@@ -196,6 +196,51 @@ p <- ggplot(long_and_clean, aes(x=farthings_per_page)) +
 
 ggsave(p, file="price_distribution.png")
 
+################################
+# Box Plot Book Price Variance #
+################################
+
+# Create a shortened title representation 
+df$short_title <- paste(substr(df$canonical_title, 0, 30), "...")
+
+# Reorder the short titles by normalized prices by medians for plotting
+df$short_title <- with(df, reorder(short_title, farthings_per_page, median))
+
+# Append the median value of each cluster to the dataframe
+df <- ddply( df, "cluster", function(x)
+  data.frame( x, median_value = median(x$farthings_per_page) ) )
+
+# Determine the number of book sizes available for each title
+df <- ddply( df, "cluster", function(x)
+  data.frame(x, distinct_sizes = length(unique(x$clean_size))))
+
+# Plot a sample of price variances
+p <- ggplot(subset(df, !is.na(cluster) & cluster < 210 & distinct_sizes == 1), 
+       aes(x = reorder(short_title, farthings_per_page, FUN=median),
+           y=farthings_per_page, 
+           colour=as.factor(size))) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.title=element_blank()) +
+  xlab("") +
+  ylab("Farthings Per Page") +
+  ggtitle("Early English Book Price Variance")
+
+ggsave(p, file="price_variance.png")
+
+##################################
+# Book Price PDF Faceted by Size #
+##################################
+
+# NB: 119 observations (.6% of total) have farthings_per_page > 5
+p <- ggplot(subset(df, farthings_per_page<5 & clean_size %in% c('4','8','12')), aes(x=farthings_per_page)) +
+  geom_histogram(binwidth=.2) +
+  facet_wrap(~clean_size) +
+  xlab("Farthings Per Page") +
+  ylab("Observations") +
+  ggtitle("Distribution of Farthings Per Page by Book Size")
+
+ggsave(p, file="")
 
 ############
 # Go Crazy #
