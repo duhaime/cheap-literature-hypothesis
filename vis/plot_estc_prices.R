@@ -16,6 +16,13 @@ df <- read.table("clustered_estc_price_data.txt",
 # Provide column headers
 colnames(df) <- c("estc_id","year","raw_size","clean_size","raw_pages","clean_pages","notes","raw_price","parsed_price","farthings","illustrations","farthings_per_page","author","title","ignore","cluster","unique_years_in_cluster","canonical_title")
 
+# Create clean representation of book size
+df$size[ df$clean_size == 2 ] <- 'folio'
+df$size[ df$clean_size == 4 ] <- 'quarto'
+df$size[ df$clean_size == 8 ] <- 'octavo'
+df$size[ df$clean_size == 12 ] <- 'duodecimo'
+df$size[ df$clean_size == 16 ] <- 'sixteenmo'
+
 ##################################
 # Plot Selected Prices over Time #
 ##################################
@@ -121,9 +128,9 @@ p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=
   #geom_errorbar( aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
   scale_x_continuous(limits=c(1700, 1800)) +
   facet_wrap(~size, scales="free_y", ncol=1) +
-  ylab("Mean Price Per Page") +
+  ylab("Mean Farthings Per Page") +
   xlab("Year") +
-  ggtitle("Mean Price Per Page of English Volumes Within the ESTC") +
+  ggtitle("Mean Farthings Per Page of English Volumes Within the ESTC") +
   guides(color=FALSE)   # this masks the whole key
 
 # Save the plot
@@ -145,31 +152,25 @@ p <- ggplot(df, aes(x=clean_pages)) +
 # Save page lengths plot
 ggsave(p, file="page_distributions.png")
 
-##############
-# Year Stats #
-##############
+#######################
+# Book Size over Time # 
+#######################
 
 # Plot distribution over years
-p <- ggplot(df, aes(x=year)) +
-  geom_histogram(binwidth=1) +
+p <- ggplot(df, aes(x=year, fill=size)) +
+  geom_bar(binwidth=1) +
   scale_x_continuous() +
   xlab("Year") +
   ylab("Number of Observations") +
-  ggtitle("Distribution of Publication Dates in the ESTC Price Corpus")
+  ggtitle("Distribution of Book Sizes in the ESTC Price Corpus") +
+  theme(legend.title=element_blank())
 
 # Save the publication date plot
-ggsave(p, file="publication_dates.png")
+ggsave(p, file="publication_size_over_time.png")
 
 ###################
 # Book Size Stats #
 ###################
-
-# Create clean representation of book size
-df$size[ df$clean_size == 2 ] <- 'folio'
-df$size[ df$clean_size == 4 ] <- 'quarto'
-df$size[ df$clean_size == 8 ] <- 'octavo'
-df$size[ df$clean_size == 12 ] <- 'duodecimo'
-df$size[ df$clean_size == 16 ] <- 'sixteenmo'
 
 # Plot the distribution over the book sizes
 p <- ggplot(df, aes(x=size)) +
@@ -196,6 +197,51 @@ p <- ggplot(long_and_clean, aes(x=farthings_per_page)) +
 
 ggsave(p, file="price_distribution.png")
 
+################################
+# Box Plot Book Price Variance #
+################################
+
+# Create a shortened title representation 
+df$short_title <- paste(substr(df$canonical_title, 0, 30), "...")
+
+# Reorder the short titles by normalized prices by medians for plotting
+df$short_title <- with(df, reorder(short_title, farthings_per_page, median))
+
+# Append the median value of each cluster to the dataframe
+df <- ddply( df, "cluster", function(x)
+  data.frame( x, median_value = median(x$farthings_per_page) ) )
+
+# Determine the number of book sizes available for each title
+df <- ddply( df, "cluster", function(x)
+  data.frame(x, distinct_sizes = length(unique(x$clean_size))))
+
+# Plot a sample of price variances
+p <- ggplot(subset(df, !is.na(cluster) & cluster < 210 & distinct_sizes == 1), 
+       aes(x = reorder(short_title, farthings_per_page, FUN=median),
+           y=farthings_per_page, 
+           colour=as.factor(size))) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.title=element_blank()) +
+  xlab("") +
+  ylab("Farthings Per Page") +
+  ggtitle("Early English Book Price Variance")
+
+ggsave(p, file="price_variance.png")
+
+##################################
+# Book Price PDF Faceted by Size #
+##################################
+
+# NB: 119 observations (.6% of total) have farthings_per_page > 5
+p <- ggplot(subset(df, farthings_per_page<5 & clean_size %in% c('4','8','12')), aes(x=farthings_per_page)) +
+  geom_histogram(binwidth=.2) +
+  facet_wrap(~clean_size) +
+  xlab("Farthings Per Page") +
+  ylab("Observations") +
+  ggtitle("Distribution of Farthings Per Page by Book Size")
+
+ggsave(p, file="")
 
 ############
 # Go Crazy #
