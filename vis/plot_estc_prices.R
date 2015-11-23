@@ -121,9 +121,9 @@ p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=
   #geom_errorbar( aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
   scale_x_continuous(limits=c(1700, 1800)) +
   facet_wrap(~size, scales="free_y", ncol=1) +
-  ylab("Mean Price Per Page") +
+  ylab("Mean Farthings Per Page") +
   xlab("Year") +
-  ggtitle("Mean Price Per Page of English Volumes Within the ESTC") +
+  ggtitle("Mean Farthings Per Page of English Volumes Within the ESTC") +
   guides(color=FALSE)   # this masks the whole key
 
 # Save the plot
@@ -196,17 +196,88 @@ p <- ggplot(long_and_clean, aes(x=farthings_per_page)) +
 
 ggsave(p, file="price_distribution.png")
 
+################################
+# Box Plot Book Price Variance #
+################################
 
-############
-# Go Crazy #
-############
+# Create a shortened title representation 
+df$short_title <- paste(substr(df$canonical_title, 0, 30), "...")
 
-library(ggplot2)
+# Reorder the short titles by normalized prices by medians for plotting
+df$short_title <- with(df, reorder(short_title, farthings_per_page, median))
 
-ggplot(subset(df, clean_pages > 30),aes(x=farthings,y=clean_pages))+
-  stat_density2d(aes(fill=..level..), geom="polygon") +
-  scale_fill_gradient(low="blue", high="red")
+# Append the median value of each cluster to the dataframe
+df <- ddply( df, "cluster", function(x)
+  data.frame( x, median_value = median(x$farthings_per_page) ) )
 
-ggplot(subset(df, farthings < 200 & clean_pages < 500), aes(x=farthings,y=clean_pages, colour=factor(illustrations))) +
-  geom_jitter(position = position_jitter(width = 15)) +
-  geom_smooth()
+# Determine the number of book sizes available for each title
+df <- ddply( df, "cluster", function(x)
+  data.frame(x, distinct_sizes = length(unique(x$clean_size))))
+
+# Plot a sample of price variances
+p <- ggplot(subset(df, !is.na(cluster) & cluster < 210 & distinct_sizes == 1), 
+       aes(x = reorder(short_title, farthings_per_page, FUN=median),
+           y=farthings_per_page, 
+           colour=as.factor(size))) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.title=element_blank()) +
+  xlab("") +
+  ylab("Farthings Per Page") +
+  ggtitle("Early English Book Price Variance")
+
+ggsave(p, file="price_variance.png")
+
+##################################
+# Book Price PDF Faceted by Size #
+##################################
+
+# NB: 119 observations (.6% of total) have farthings_per_page > 5
+p <- ggplot(subset(df, farthings_per_page<5 & clean_size %in% c('4','8','12')), aes(x=farthings_per_page)) +
+  geom_histogram(binwidth=.2) +
+  facet_wrap(~clean_size) +
+  xlab("Farthings Per Page") +
+  ylab("Observations") +
+  ggtitle("Distribution of Farthings Per Page by Book Size")
+
+ggsave(p, file="normalized_cost_by_size.png")
+
+#################################
+# Boxplot of Price by Book Size #
+#################################
+
+p <- ggplot(subset(df, farthings_per_page<4), aes(factor(clean_size), farthings_per_page)) +
+  geom_jitter(alpha=.1, position = position_jitter(width = .1)) +
+  geom_boxplot(outlier.shape = NA) +
+  xlab("Book Size") +
+  ylab("Farthings Per Page") +
+  ggtitle("Early Book Price Distributions by Size")
+
+ggsave(p, file="price_by_size_boxplot.png")
+
+# We can see that the median price per page follows a linear trend:
+median(subset(df, clean_size==2)$farthings_per_page)  # 3
+median(subset(df, clean_size==4)$farthings_per_page)  # 1.6
+median(subset(df, clean_size==8)$farthings_per_page)  # 0.7164179
+median(subset(df, clean_size==16)$farthings_per_page) # 0.4091041
+
+####################################################
+# Measure correlation between price and page count #
+####################################################
+
+# Using 94% of data returned by subset
+ggplot(subset(df, farthings < 150 & clean_pages < 300), 
+       aes(x=farthings,y=clean_pages)) +
+  geom_jitter(alpha=.1, position = position_jitter(width = 15, height=15)) 
+
+cor(df$farthings, df$clean_pages)
+
+#####################
+# Build mixed model #
+#####################
+
+library(lme4)
+
+price.model = lmer(farthings ~ clean_pages + clean_size + as.factor(illustrations) + 
+                     (1|cluster) + (1|year), data=df)
+
