@@ -240,18 +240,44 @@ p <- ggplot(subset(df, farthings_per_page<5 & clean_size %in% c('4','8','12')), 
   ylab("Observations") +
   ggtitle("Distribution of Farthings Per Page by Book Size")
 
-ggsave(p, file="")
+ggsave(p, file="normalized_cost_by_size.png")
 
-############
-# Go Crazy #
-############
+#################################
+# Boxplot of Price by Book Size #
+#################################
 
-library(ggplot2)
+p <- ggplot(subset(df, farthings_per_page<4), aes(factor(clean_size), farthings_per_page)) +
+  geom_jitter(alpha=.1, position = position_jitter(width = .1)) +
+  geom_boxplot(outlier.shape = NA) +
+  xlab("Book Size") +
+  ylab("Farthings Per Page") +
+  ggtitle("Early Book Price Distributions by Size")
 
-ggplot(subset(df, clean_pages > 30),aes(x=farthings,y=clean_pages))+
-  stat_density2d(aes(fill=..level..), geom="polygon") +
-  scale_fill_gradient(low="blue", high="red")
+ggsave(p, file="price_by_size_boxplot.png")
 
-ggplot(subset(df, farthings < 200 & clean_pages < 500), aes(x=farthings,y=clean_pages, colour=factor(illustrations))) +
-  geom_jitter(position = position_jitter(width = 15)) +
-  geom_smooth()
+# We can see that the median price per page follows a linear trend:
+median(subset(df, clean_size==2)$farthings_per_page)  # 3
+median(subset(df, clean_size==4)$farthings_per_page)  # 1.6
+median(subset(df, clean_size==8)$farthings_per_page)  # 0.7164179
+median(subset(df, clean_size==16)$farthings_per_page) # 0.4091041
+
+####################################################
+# Measure correlation between price and page count #
+####################################################
+
+# Using 94% of data returned by subset
+ggplot(subset(df, farthings < 150 & clean_pages < 300), 
+       aes(x=farthings,y=clean_pages)) +
+  geom_jitter(alpha=.1, position = position_jitter(width = 15, height=15)) 
+
+cor(df$farthings, df$clean_pages)
+
+#####################
+# Build mixed model #
+#####################
+
+library(lme4)
+
+price.model = lmer(farthings ~ clean_pages + clean_size + as.factor(illustrations) + 
+                     (1|cluster) + (1|year), data=df)
+
