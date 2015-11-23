@@ -16,6 +16,13 @@ df <- read.table("clustered_estc_price_data.txt",
 # Provide column headers
 colnames(df) <- c("estc_id","year","raw_size","clean_size","raw_pages","clean_pages","notes","raw_price","parsed_price","farthings","illustrations","farthings_per_page","author","title","ignore","cluster","unique_years_in_cluster","canonical_title")
 
+# Create clean representation of book size
+df$size[ df$clean_size == 2 ] <- 'folio'
+df$size[ df$clean_size == 4 ] <- 'quarto'
+df$size[ df$clean_size == 8 ] <- 'octavo'
+df$size[ df$clean_size == 12 ] <- 'duodecimo'
+df$size[ df$clean_size == 16 ] <- 'sixteenmo'
+
 ##################################
 # Plot Selected Prices over Time #
 ##################################
@@ -145,31 +152,25 @@ p <- ggplot(df, aes(x=clean_pages)) +
 # Save page lengths plot
 ggsave(p, file="page_distributions.png")
 
-##############
-# Year Stats #
-##############
+#######################
+# Book Size over Time # 
+#######################
 
 # Plot distribution over years
-p <- ggplot(df, aes(x=year)) +
-  geom_histogram(binwidth=1) +
+p <- ggplot(df, aes(x=year, fill=size)) +
+  geom_bar(binwidth=1) +
   scale_x_continuous() +
   xlab("Year") +
   ylab("Number of Observations") +
-  ggtitle("Distribution of Publication Dates in the ESTC Price Corpus")
+  ggtitle("Distribution of Book Sizes in the ESTC Price Corpus") +
+  theme(legend.title=element_blank())
 
 # Save the publication date plot
-ggsave(p, file="publication_dates.png")
+ggsave(p, file="publication_size_over_time.png")
 
 ###################
 # Book Size Stats #
 ###################
-
-# Create clean representation of book size
-df$size[ df$clean_size == 2 ] <- 'folio'
-df$size[ df$clean_size == 4 ] <- 'quarto'
-df$size[ df$clean_size == 8 ] <- 'octavo'
-df$size[ df$clean_size == 12 ] <- 'duodecimo'
-df$size[ df$clean_size == 16 ] <- 'sixteenmo'
 
 # Plot the distribution over the book sizes
 p <- ggplot(df, aes(x=size)) +
