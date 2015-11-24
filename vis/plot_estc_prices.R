@@ -201,6 +201,8 @@ ggsave(p, file="price_distribution.png")
 # Box Plot Book Price Variance #
 ################################
 
+library(plyr)
+
 # Create a shortened title representation 
 df$short_title <- paste(substr(df$canonical_title, 0, 30), "...")
 
@@ -241,7 +243,27 @@ p <- ggplot(subset(df, farthings_per_page<5 & clean_size %in% c('4','8','12')), 
   ylab("Observations") +
   ggtitle("Distribution of Farthings Per Page by Book Size")
 
-ggsave(p, file="")
+ggsave(p, file="book_price_pdf_by_size.png")
+
+###############################
+# Price Distributions by Size #
+###############################
+
+# nrow(subset(df, farthings_per_page>4)) = 190; 
+# nrow(df) = 16284
+# So plot contains 98.8% of data
+
+p <- ggplot(subset(df, farthings_per_page < 4), aes(factor(clean_size), farthings_per_page)) +
+  geom_jitter(alpha=.3, position = position_jitter(width = .3)) +
+  geom_boxplot(outlier.shape = NA) +
+  guides(colour=FALSE) +
+  ylab("Farthings Per Page") +
+  scale_x_discrete(labels=c("folio","quarto","octavo",
+                            "duodecimo","sixteenmo")) +
+  xlab("") +
+  ggtitle("Early Book Price Distributions by Size")
+
+ggsave(p, file="price_distributions_by_size.png")
 
 ############
 # Go Crazy #
