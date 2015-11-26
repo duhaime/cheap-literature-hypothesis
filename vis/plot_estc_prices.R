@@ -23,6 +23,9 @@ df$size[ df$clean_size == 8 ] <- 'octavo'
 df$size[ df$clean_size == 12 ] <- 'duodecimo'
 df$size[ df$clean_size == 16 ] <- 'sixteenmo'
 
+# Reorder the levels of size in df to change the order of their display in legend
+df$size <- factor(df$size, levels = c("folio","quarto","octavo","duodecimo","sixteenmo"))
+
 ##################################
 # Plot Selected Prices over Time #
 ##################################
@@ -253,15 +256,16 @@ ggsave(p, file="book_price_pdf_by_size.png")
 # nrow(df) = 16284
 # So plot contains 98.8% of data
 
-p <- ggplot(subset(df, farthings_per_page < 4), aes(factor(clean_size), farthings_per_page)) +
-  geom_jitter(alpha=.3, position = position_jitter(width = .3)) +
+p <- ggplot(subset(df, farthings_per_page < 4), 
+            aes(factor(clean_size), farthings_per_page, color=size)) +
+  geom_jitter(alpha=.4, position = position_jitter(width = .3)) +
   geom_boxplot(outlier.shape = NA) +
   guides(colour=FALSE) +
   ylab("Farthings Per Page") +
   scale_x_discrete(labels=c("folio","quarto","octavo",
                             "duodecimo","sixteenmo")) +
   xlab("") +
-  ggtitle("Early Book Price Distributions by Size")
+  ggtitle("Distribution of Book Price by Size in the ESTC Price Corpus")
 
 ggsave(p, file="price_distributions_by_size.png")
 
