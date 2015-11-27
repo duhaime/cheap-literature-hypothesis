@@ -121,8 +121,18 @@ n_mean_sd_by_size <- rbind(n_mean_sd_by_size, wage_data.df)
 # Rename book sizes for clarity
 n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 4 ] <- 'quarto'
 n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 8 ] <- 'octavo'
-n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 12 ] <- 'duodecimo'
+#n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 12 ] <- 'duodecimo'
 n_mean_sd_by_size$size[ n_mean_sd_by_size$clean_size == 'labour' ] <- 'wrigley labour estimate'
+
+# Find the colors previously used to plot octavo and quarto
+ggplotColours <- function(n=6, h=c(0, 360) +15){
+  if ((diff(h)%%360) < 1) h[2] <- h[2] - 360/n
+  hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
+}
+
+five_color_palatte <- ggplotColours(n=5)
+quarto_color <- five_color_palatte[2]
+octavo_color <- five_color_palatte[3]
 
 # Plot the aggregated df
 p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=size) ) +
@@ -133,11 +143,29 @@ p <- ggplot( subset(n_mean_sd_by_size, !is.na(size)), aes(x=year, y=mean, color=
   facet_wrap(~size, scales="free_y", ncol=1) +
   ylab("Mean Farthings Per Page") +
   xlab("Year") +
-  ggtitle("Mean Farthings Per Page of English Volumes Within the ESTC") +
-  guides(color=FALSE)   # this masks the whole key
+  ggtitle("Mean Farthings Per Page within the ESTC") +
+  guides(color=FALSE) +  # this masks the whole key
+  scale_colour_manual(values = c(octavo_color, quarto_color, five_color_palatte[4]))
 
 # Save the plot
-ggsave(p, file="farthings_per_page_by_size.png", scale=1.2)
+ggsave(p, file="farthings_per_page_by_size.png", scale=1)
+
+# Build linear model for wages 
+# Intercept:-685.6084
+# Slope: 0.4476  
+lm(mean~year, data=wage_data.df)
+
+# Build linear model for octavo
+# Intercept: -8.861201
+# Slope: 0.005511
+lm(mean~year, data=subset(mean_by_size.df, clean_size==8))
+
+# Build linear model for quarto
+# Intercept: -35.62360
+# Slope: 0.02133 
+lm(mean~year, data=subset(mean_by_size.df, clean_size==4))
+
+
 
 ####################
 # Page Count Stats #
@@ -268,6 +296,18 @@ p <- ggplot(subset(df, farthings_per_page < 4),
   ggtitle("Distribution of Book Price by Size in the ESTC Price Corpus")
 
 ggsave(p, file="price_distributions_by_size.png")
+
+################################
+# Fit Linear Model to Features #
+################################
+
+size_and_pages.model <- lm(farthings ~ size + clean_pages, data=df)
+
+summary(size_and_pages.model)
+
+size_pages_and_year.model <- lm(farthings)
+
+summary(size_pages_and_year.model)
 
 ############
 # Go Crazy #
