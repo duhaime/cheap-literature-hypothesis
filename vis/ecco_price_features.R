@@ -1,3 +1,5 @@
+setwd("../data")
+
 ecco.df <- read.table("ecco_price_metadata.txt",
                                   sep="\t",
                                   comment.char = "",
