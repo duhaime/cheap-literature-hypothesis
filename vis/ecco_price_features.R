@@ -29,9 +29,10 @@ p <- ggplot( subset(estc_ecco.df, author.y %in% subset.df$author & author.y != "
   guides(colour=FALSE) +
   xlab("Author") +
   ylab("Farthings Per Page") +
-  ggtitle("Normalized Price Distributions by Author")
+  ggtitle("Price Distributions by Author") +
+  scale_y_continuous(limits=c(0,4.5))
 
-ggsave(p, file="author_prices.png")
+ggsave(p, file="author_prices.png", scale=1.6)
 
 ##########################################
 # Price variance by publication location #
@@ -46,13 +47,14 @@ colnames(subset.df) <- c("publication_city","Freq")
 
 p <- ggplot( subset(estc_ecco.df, publication_city %in% subset.df$publication_city & farthings_per_page < 10 & !grepl("]", publication_city)),
              aes( reorder(publication_city, farthings_per_page, FUN=median), farthings_per_page, color=as.factor(reorder(publication_city, farthings_per_page, FUN=median)))) +
-  geom_jitter(alpha=.3) +
+  geom_jitter(alpha = .3, position = position_jitter(width = .3)) +
   geom_boxplot(outlier.shape = NA) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   guides(colour=FALSE) +
   xlab("Publication City") +
   ylab("Farthings Per Page") +
-  ggtitle("Normalized Price Distributions by Publication Location")
+  ggtitle("Price Distributions by Publication Location") +
+  scale_y_continuous(limits=c(0,4.5))
 
 ggsave(p, file="location_prices.png")
 
