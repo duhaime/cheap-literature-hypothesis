@@ -1,4 +1,3 @@
-from bs4 import BeautifulSoup
 from multiprocessing import Pool
 import glob, codecs, sys, json
 
@@ -15,7 +14,7 @@ def extract_features(file_path):
 	try:
 		uniform_title = f.split("<uniformTitle>")[1].split("<")[0]
 	except IndexError:
-		uniform_title = ''
+		uniform_title = None
 
         # Retrieve the ESTC ID for the current work
         estc_id = f.split("<ESTCID>")[1].split("<")[0]
@@ -60,11 +59,20 @@ def extract_features(file_path):
 	display_title = f.split("<displayTitle>")[1].split("<")[0]
 
 	# Retrieve the imprint year
-	imprint_year = f.split("<imprintYear>")[1].split("<")[0]
+	try:
+		imprint_year = f.split("<imprintYear>")[1].split("<")[0]
+
+	except IndexError:
+		imprint_year = None
+
+	try:
+		pub_date = f.split("<pubDate>")[1].split("<")[0]
+	except IndexError:
+		pub_date = None
 
 	# Retrieve the shelfmarks as a list
 	shelfmark_list = []
-	shelfmarks = f.split("<libraryShelfmark>")[1]
+	shelfmarks = f.split("<libraryShelfmark>")[1:]
 	for i in shelfmarks:
 		shelfmark_list.append(i.split("<")[0])
 
@@ -78,27 +86,27 @@ def extract_features(file_path):
         return [estc_id, file_path, genre, uniform_title, \
  	holdings_count, document_type, language, subject_field_terms, \
 	author_name, death_date, full_title, len(full_title), \
- 	display_title, imprint_year, shelfmark_list, \
+ 	display_title, imprint_year, pub_date, shelfmark_list, \
  	current_volume, total_volumes, \
         publication_location]
 
 if __name__ == "__main__":
-    files = glob.glob(sys.argv[1])
-    pool_one = Pool(40)
-    results = []
+	files = glob.glob(sys.argv[1])
+	pool_one = Pool(40)
+	results = []
 
-    print "preparing to process", len(files), "files"
+	print "preparing to process", len(files), "files"
 
-    '''
-    for c, r in enumerate( pool_one.imap(extract_features, files) ):
-        print "processed", c, "files"
-        results.append(r)
-    '''
+	for c, r in enumerate( pool_one.imap(extract_features, files) ):
+		print "processed", c, "files"
+		results.append(r)
 
-    for i in files:
-        print i
-        results.append( extract_features(i) )   
+	'''	
+	for i in files:
+		print i
+		results.append( extract_features(i) )   
+	'''
 
-    with open("derived_metadata.json",'w') as json_file:
-        json.dump(results, json_file)
+	with open("derived_metadata.json",'w') as json_file:
+		json.dump(results, json_file)
 
